@@ -25,3 +25,6 @@ export type SortOption = "recent" | "alphabetical"
 export type Note = {
   id: string
 } & NoteData
+
+// Auth (re-export from auth module for convenience)
+export type { User, LoginCredentials, LoginResponse, MeResponse } from "./auth"

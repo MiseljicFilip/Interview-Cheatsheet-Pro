@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Routes, Route, Navigate } from "react-router-dom"
 import { Container } from "./components"
 import { EditNote } from "./EditNote"
@@ -7,16 +7,37 @@ import { Note } from "./Note"
 import { NoteLayout } from "./NoteLayout"
 import { NoteList } from "./NoteList"
 import { DEFAULT_TAGS } from "./data/defaultTags"
-import type { NoteData, RawNote, Tag } from "./types"
+import type { NoteData, RawNote, Tag, RawNoteData } from "./types"
 import { useLocalStorage } from "./useLocalStorage"
-import { v4 as uuidV4 } from "uuid"
+import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { db } from "./firebase"
 
 // Re-export types so existing imports from "./App" still work
 export type { Note, NoteData, RawNote, Tag } from "./types"
 
-function App() {
-  const [notes, setNotes] = useLocalStorage<RawNote[]>("NOTES", [])
+function NoteApp() {
+  const [notes, setNotes] = useState<RawNote[]>([])
   const [tags, setTags] = useLocalStorage<Tag[]>("TAGS", DEFAULT_TAGS)
+
+  // Subscribe to notes in Firestore
+  useEffect(() => {
+    const notesRef = collection(db, "notes")
+    const unsubscribe = onSnapshot(notesRef, (snapshot) => {
+      const data: RawNote[] = snapshot.docs.map((docSnap) => {
+        const docData = docSnap.data() as RawNoteData
+        return {
+          id: docSnap.id,
+          title: docData.title,
+          markdown: docData.markdown,
+          tagIds: docData.tagIds ?? [],
+          updatedAt: docData.updatedAt ?? 0,
+        }
+      })
+      setNotes(data)
+    })
+
+    return () => unsubscribe()
+  }, [])
 
   // One-time migration: if TAGS was already saved as [] before we had defaults, fill it
   useEffect(() => {
@@ -27,42 +48,36 @@ function App() {
     }
   }, [tags.length, setTags])
 
-  const notesWithTags = useMemo(() => {
-    return notes.map((note) => ({
-      ...note,
-      tags: tags.filter((tag) => note.tagIds.includes(tag.id)),
-    }))
-  }, [notes, tags])
+  const notesWithTags = useMemo(
+    () =>
+      notes.map((note) => ({
+        ...note,
+        tags: tags.filter((tag) => note.tagIds.includes(tag.id)),
+      })),
+    [notes, tags]
+  )
 
   function onCreateNote({ tags: noteTags, ...data }: NoteData) {
-    setNotes((prevNotes) => [
-      ...prevNotes,
-      {
-        ...data,
-        id: uuidV4(),
-        tagIds: noteTags.map((t) => t.id),
-        updatedAt: Date.now(),
-      },
-    ])
+    const notesRef = collection(db, "notes")
+    void addDoc(notesRef, {
+      ...data,
+      tagIds: noteTags.map((t) => t.id),
+      updatedAt: Date.now(),
+    })
   }
 
   function onUpdateNote(id: string, { tags: noteTags, ...data }: NoteData) {
-    setNotes((prevNotes) =>
-      prevNotes.map((note) =>
-        note.id === id
-          ? {
-              ...note,
-              ...data,
-              tagIds: noteTags.map((t) => t.id),
-              updatedAt: Date.now(),
-            }
-          : note
-      )
-    )
+    const noteRef = doc(db, "notes", id)
+    void updateDoc(noteRef, {
+      ...data,
+      tagIds: noteTags.map((t) => t.id),
+      updatedAt: Date.now(),
+    })
   }
 
   function onDeleteNote(id: string) {
-    setNotes((prevNotes) => prevNotes.filter((note) => note.id !== id))
+    const noteRef = doc(db, "notes", id)
+    void deleteDoc(noteRef)
   }
 
   function addTag(tag: Tag) {
@@ -122,4 +137,4 @@ function App() {
   )
 }
 
-export default App
+export default NoteApp

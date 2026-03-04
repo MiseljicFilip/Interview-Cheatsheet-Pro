@@ -17,7 +17,7 @@ build/
 
 # Personal / local rules (not shared)
 .cursorrules.md
-
+deploy.yml
 # Logs
 logs/
 *.log
