@@ -9,7 +9,7 @@ import { NoteList } from "./NoteList"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData } from "./types"
 import { useLocalStorage } from "./useLocalStorage"
-import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore"
+import { ref, onValue, off, push, set, remove } from "firebase/database"
 import { db } from "./firebase"
 
 // Re-export types so existing imports from "./App" still work
@@ -19,24 +19,26 @@ function NoteApp() {
   const [notes, setNotes] = useState<RawNote[]>([])
   const [tags, setTags] = useLocalStorage<Tag[]>("TAGS", DEFAULT_TAGS)
 
-  // Subscribe to notes in Firestore
+  // Subscribe to notes in Realtime Database
   useEffect(() => {
-    const notesRef = collection(db, "notes")
-    const unsubscribe = onSnapshot(notesRef, (snapshot) => {
-      const data: RawNote[] = snapshot.docs.map((docSnap) => {
-        const docData = docSnap.data() as RawNoteData
-        return {
-          id: docSnap.id,
-          title: docData.title,
-          markdown: docData.markdown,
-          tagIds: docData.tagIds ?? [],
-          updatedAt: docData.updatedAt ?? 0,
-        }
-      })
+    const notesRef = ref(db, "notes")
+    const handleValue = (snapshot: { val: () => Record<string, RawNoteData> | null }) => {
+      const val = snapshot.val()
+      if (!val) {
+        setNotes([])
+        return
+      }
+      const data: RawNote[] = Object.entries(val).map(([id, docData]) => ({
+        id,
+        title: docData.title,
+        markdown: docData.markdown,
+        tagIds: docData.tagIds ?? [],
+        updatedAt: docData.updatedAt ?? 0,
+      }))
       setNotes(data)
-    })
-
-    return () => unsubscribe()
+    }
+    onValue(notesRef, handleValue, (err) => console.error("[Realtime DB] Read error:", err))
+    return () => off(notesRef)
   }, [])
 
   // One-time migration: if TAGS was already saved as [] before we had defaults, fill it
@@ -58,26 +60,30 @@ function NoteApp() {
   )
 
   function onCreateNote({ tags: noteTags, ...data }: NoteData) {
-    const notesRef = collection(db, "notes")
-    void addDoc(notesRef, {
-      ...data,
+    const notesRef = ref(db, "notes")
+    const payload = {
+      title: data.title ?? "",
+      markdown: data.markdown ?? "",
       tagIds: noteTags.map((t) => t.id),
       updatedAt: Date.now(),
-    })
+    }
+    push(notesRef, payload)
+      .then(() => console.log("[Realtime DB] Note created"))
+      .catch((err) => console.error("[Realtime DB] Write error:", err))
   }
 
   function onUpdateNote(id: string, { tags: noteTags, ...data }: NoteData) {
-    const noteRef = doc(db, "notes", id)
-    void updateDoc(noteRef, {
+    const noteRef = ref(db, "notes/" + id)
+    set(noteRef, {
       ...data,
       tagIds: noteTags.map((t) => t.id),
       updatedAt: Date.now(),
-    })
+    }).catch((err) => console.error("[Realtime DB] Update error:", err))
   }
 
   function onDeleteNote(id: string) {
-    const noteRef = doc(db, "notes", id)
-    void deleteDoc(noteRef)
+    const noteRef = ref(db, "notes/" + id)
+    remove(noteRef).catch((err) => console.error("[Realtime DB] Delete error:", err))
   }
 
   function addTag(tag: Tag) {

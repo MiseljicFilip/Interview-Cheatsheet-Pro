@@ -6,7 +6,7 @@ import App from "./App"
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <BrowserRouter basename="/Interview-Cheatsheet-Pro">
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, "") || "/"}>
       <App />
     </BrowserRouter>
   </React.StrictMode>
