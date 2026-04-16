@@ -1,6 +1,5 @@
 import { Link, useNavigate } from "react-router-dom"
-import ReactMarkdown from "react-markdown"
-import { Button } from "./components"
+import { Button, MarkdownRenderer } from "./components"
 import { useNote } from "./NoteLayout"
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react"
 
@@ -61,9 +60,7 @@ export function Note({ onDelete }: NoteProps) {
           </Link>
         </div>
       </header>
-      <div className="prose prose-neutral max-w-none dark:prose-invert prose-p:leading-relaxed prose-headings:font-semibold">
-        <ReactMarkdown>{note.markdown}</ReactMarkdown>
-      </div>
+      <MarkdownRenderer>{note.markdown}</MarkdownRenderer>
     </article>
   )
 }

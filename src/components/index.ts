@@ -1,4 +1,5 @@
 export { Button } from "./Button"
+export { MarkdownRenderer } from "./MarkdownRenderer"
 export { Card } from "./Card"
 export { CardLink } from "./CardLink"
 export { Container } from "./Container"

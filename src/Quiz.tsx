@@ -1,8 +1,7 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import ReactMarkdown from "react-markdown"
 import { v4 as uuidv4 } from "uuid"
-import { Button } from "./components"
+import { Button, MarkdownRenderer } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
 import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react"
 import type { QuizSession, Tag } from "./types"
@@ -248,9 +247,7 @@ export function Quiz({ notes, availableTags }: QuizProps) {
                 <p className="mb-3 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
                   Answer
                 </p>
-                <div className="prose prose-neutral max-w-none text-sm dark:prose-invert prose-p:leading-relaxed prose-headings:font-semibold">
-                  <ReactMarkdown>{note.markdown}</ReactMarkdown>
-                </div>
+                <MarkdownRenderer className="text-sm">{note.markdown}</MarkdownRenderer>
               </div>
               <div className="flex gap-3 border-t border-neutral-200 p-6 dark:border-neutral-700">
                 <Button
