@@ -6,6 +6,7 @@ import { NewNote } from "./NewNote"
 import { Note } from "./Note"
 import { NoteLayout } from "./NoteLayout"
 import { NoteList } from "./NoteList"
+import { Quiz } from "./Quiz"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData } from "./types"
 import { useLocalStorage } from "./useLocalStorage"
@@ -137,6 +138,10 @@ function NoteApp() {
             }
           />
         </Route>
+        <Route
+          path="/quiz"
+          element={<Quiz notes={notesWithTags} availableTags={tags} />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Container>
