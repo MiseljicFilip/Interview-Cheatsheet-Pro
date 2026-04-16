@@ -3,7 +3,7 @@ import { Link } from "react-router-dom"
 import { Button, CardLink } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
 import type { SortOption, Tag } from "./types"
-import { BookOpen, Plus, Tag as TagIcon } from "lucide-react"
+import { BarChart2, BookOpen, Plus, Tag as TagIcon } from "lucide-react"
 
 type SimplifiedNote = {
   id: string
@@ -84,6 +84,12 @@ export function NoteList({
             <Button variant="secondary" className="inline-flex gap-2">
               <BookOpen className="h-4 w-4" aria-hidden />
               Start quiz
+            </Button>
+          </Link>
+          <Link to="/stats">
+            <Button variant="secondary" className="inline-flex gap-2">
+              <BarChart2 className="h-4 w-4" aria-hidden />
+              Stats
             </Button>
           </Link>
           <Button

@@ -1,10 +1,21 @@
 import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import ReactMarkdown from "react-markdown"
+import { v4 as uuidv4 } from "uuid"
 import { Button } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
 import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react"
-import type { Tag } from "./types"
+import type { QuizSession, Tag } from "./types"
+
+const SESSIONS_KEY = "QUIZ_SESSIONS"
+const MAX_SESSIONS = 100
+
+function saveSession(session: QuizSession) {
+  const raw = localStorage.getItem(SESSIONS_KEY)
+  const existing: QuizSession[] = raw ? JSON.parse(raw) : []
+  const updated = [session, ...existing].slice(0, MAX_SESSIONS)
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated))
+}
 
 type QuizNote = {
   id: string
@@ -59,15 +70,25 @@ export function Quiz({ notes, availableTags }: QuizProps) {
   }
 
   function handleAnswer(wasCorrect: boolean) {
-    if (wasCorrect) {
-      setCorrect((c) => c + 1)
-    } else {
+    const newMissed = wasCorrect ? missedNotes : [...missedNotes, queue[currentIndex]]
+    const newCorrect = wasCorrect ? correct + 1 : correct
+
+    if (wasCorrect) setCorrect(newCorrect)
+    else {
       setIncorrect((i) => i + 1)
-      setMissedNotes((prev) => [...prev, queue[currentIndex]])
+      setMissedNotes(newMissed)
     }
 
     const next = currentIndex + 1
     if (next >= queue.length) {
+      saveSession({
+        id: uuidv4(),
+        date: Date.now(),
+        total: queue.length,
+        correct: newCorrect,
+        tagIds: selectedTags.map((t) => t.id),
+        missedNoteIds: newMissed.map((n) => n.id),
+      })
       setPhase("results")
     } else {
       setCurrentIndex(next)

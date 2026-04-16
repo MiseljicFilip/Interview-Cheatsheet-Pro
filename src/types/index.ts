@@ -26,5 +26,14 @@ export type Note = {
   id: string
 } & NoteData
 
+export type QuizSession = {
+  id: string
+  date: number       // Unix ms timestamp
+  total: number
+  correct: number
+  tagIds: string[]   // tags that were filtered at quiz start (empty = all)
+  missedNoteIds: string[]
+}
+
 // Auth (re-export from auth module for convenience)
 export type { User, LoginCredentials, LoginResponse, MeResponse } from "./auth"
