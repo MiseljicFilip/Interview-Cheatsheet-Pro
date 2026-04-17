@@ -6,7 +6,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "deploy": "vite build"
+    "deploy": "vite build",
+    "seed": "node scripts/seed-notes.mjs",
+    "seed:courses": "node scripts/seed-courses.mjs",
+    "seed:all": "node scripts/seed-notes.mjs && node scripts/seed-courses.mjs"
   },
   "dependencies": {
     "@types/react-syntax-highlighter": "^15.5.13",

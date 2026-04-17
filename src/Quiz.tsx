@@ -26,6 +26,9 @@ type QuizNote = {
 type QuizProps = {
   notes: QuizNote[]
   availableTags: Tag[]
+  courseId?: string
+  courseTitle?: string
+  preFilteredNotes?: QuizNote[]
 }
 
 type Phase = "setup" | "question" | "results"
@@ -39,7 +42,7 @@ function shuffle<T>(arr: T[]): T[] {
   return a
 }
 
-export function Quiz({ notes, availableTags }: QuizProps) {
+export function Quiz({ notes, availableTags, courseId, courseTitle, preFilteredNotes }: QuizProps) {
   const [phase, setPhase] = useState<Phase>("setup")
   const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const [maxQuestions, setMaxQuestions] = useState(10)
@@ -51,11 +54,12 @@ export function Quiz({ notes, availableTags }: QuizProps) {
   const [missedNotes, setMissedNotes] = useState<QuizNote[]>([])
 
   const filteredNotes = useMemo(() => {
+    if (preFilteredNotes) return preFilteredNotes
     if (selectedTags.length === 0) return notes
     return notes.filter((note) =>
       selectedTags.every((tag) => note.tags.some((t) => t.id === tag.id))
     )
-  }, [notes, selectedTags])
+  }, [notes, selectedTags, preFilteredNotes])
 
   function startQuiz() {
     const shuffled = shuffle(filteredNotes).slice(0, maxQuestions)
@@ -87,6 +91,7 @@ export function Quiz({ notes, availableTags }: QuizProps) {
         correct: newCorrect,
         tagIds: selectedTags.map((t) => t.id),
         missedNoteIds: newMissed.map((n) => n.id),
+        ...(courseId ? { courseId } : {}),
       })
       setPhase("results")
     } else {
@@ -128,14 +133,25 @@ export function Quiz({ notes, availableTags }: QuizProps) {
 
         <div className="space-y-6 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
           <div>
-            <TagsSelect
-              id="quiz-tags"
-              label="Filter by tags (optional)"
-              availableTags={availableTags}
-              value={selectedTags}
-              onChange={setSelectedTags}
-              placeholder="All topics"
-            />
+            {courseId ? (
+              <div>
+                <p className="mb-1 text-xs font-medium uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
+                  Course
+                </p>
+                <p className="text-base font-semibold text-neutral-900 dark:text-white">
+                  {courseTitle}
+                </p>
+              </div>
+            ) : (
+              <TagsSelect
+                id="quiz-tags"
+                label="Filter by tags (optional)"
+                availableTags={availableTags}
+                value={selectedTags}
+                onChange={setSelectedTags}
+                placeholder="All topics"
+              />
+            )}
             <p className="mt-1.5 text-xs text-neutral-500 dark:text-neutral-400">
               {filteredNotes.length} question{filteredNotes.length !== 1 ? "s" : ""} available
             </p>
