@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, BookOpen, Plus } from "lucide-react"
 import { Button, CardLink } from "../components"
@@ -11,14 +11,20 @@ type Props = {
 
 export function CourseList({ courses, availableTags }: Props) {
   const [titleSearch, setTitleSearch] = useState("")
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(titleSearch), 300)
+    return () => clearTimeout(id)
+  }, [titleSearch])
 
   const filteredCourses = useMemo(() => {
-    const normalizedSearch = titleSearch.trim().toLowerCase()
+    const normalizedSearch = debouncedSearch.trim().toLowerCase()
     if (!normalizedSearch) return courses
     return courses.filter((course) =>
       course.title.toLowerCase().includes(normalizedSearch)
     )
-  }, [courses, titleSearch])
+  }, [courses, debouncedSearch])
 
   // Group courses by tagId
   const grouped = availableTags
