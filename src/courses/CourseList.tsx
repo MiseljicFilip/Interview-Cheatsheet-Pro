@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, BookOpen, Plus } from "lucide-react"
 import { Button, CardLink } from "../components"
@@ -9,15 +10,25 @@ type Props = {
 }
 
 export function CourseList({ courses, availableTags }: Props) {
+  const [titleSearch, setTitleSearch] = useState("")
+
+  const filteredCourses = useMemo(() => {
+    const normalizedSearch = titleSearch.trim().toLowerCase()
+    if (!normalizedSearch) return courses
+    return courses.filter((course) =>
+      course.title.toLowerCase().includes(normalizedSearch)
+    )
+  }, [courses, titleSearch])
+
   // Group courses by tagId
   const grouped = availableTags
     .map((tag) => ({
       tag,
-      courses: courses.filter((c) => c.tagId === tag.id),
+      courses: filteredCourses.filter((c) => c.tagId === tag.id),
     }))
     .filter((g) => g.courses.length > 0)
 
-  const untagged = courses.filter(
+  const untagged = filteredCourses.filter(
     (c) => !availableTags.some((t) => t.id === c.tagId)
   )
 
@@ -42,11 +53,38 @@ export function CourseList({ courses, availableTags }: Props) {
         </Link>
       </header>
 
+      <section aria-label="Course search" className="mb-6">
+        <div className="max-w-md space-y-1.5">
+          <label
+            htmlFor="search-course-title"
+            className="block text-sm font-medium text-neutral-700 dark:text-neutral-300"
+          >
+            Search by course name
+          </label>
+          <input
+            id="search-course-title"
+            type="search"
+            value={titleSearch}
+            onChange={(e) => setTitleSearch(e.target.value)}
+            placeholder="Type to search courses..."
+            className="w-full rounded-xl border border-neutral-300 bg-white px-3 py-2 text-sm outline-none transition-colors placeholder:text-neutral-400 focus:border-neutral-500 focus:ring-2 focus:ring-neutral-500/20 dark:border-neutral-600 dark:bg-neutral-800 dark:placeholder:text-neutral-500"
+            aria-label="Search courses by title"
+          />
+        </div>
+      </section>
+
       {courses.length === 0 ? (
         <div className="py-16 text-center">
           <BookOpen className="mx-auto mb-4 h-10 w-10 text-neutral-300 dark:text-neutral-600" />
           <p className="text-neutral-500 dark:text-neutral-400">
             No courses yet. Create your first one.
+          </p>
+        </div>
+      ) : filteredCourses.length === 0 ? (
+        <div className="py-16 text-center">
+          <BookOpen className="mx-auto mb-4 h-10 w-10 text-neutral-300 dark:text-neutral-600" />
+          <p className="text-neutral-500 dark:text-neutral-400">
+            No courses match your search.
           </p>
         </div>
       ) : (
