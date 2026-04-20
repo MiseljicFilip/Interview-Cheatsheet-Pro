@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, BookOpen, Plus } from "lucide-react"
 import { Button, CardLink } from "../components"
-import type { Course, Tag } from "../types"
+import type { Course, RawLesson, Tag } from "../types"
 
 type Props = {
   courses: Course[]
   availableTags: Tag[]
+  lessons: RawLesson[]
 }
 
-export function CourseList({ courses, availableTags }: Props) {
+export function CourseList({ courses, availableTags, lessons }: Props) {
   const [titleSearch, setTitleSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -102,7 +103,7 @@ export function CourseList({ courses, availableTags }: Props) {
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {tagCourses.map((course) => (
-                  <CourseCard key={course.id} course={course} />
+                  <CourseCard key={course.id} course={course} lessons={lessons} />
                 ))}
               </div>
             </section>
@@ -115,7 +116,7 @@ export function CourseList({ courses, availableTags }: Props) {
               </h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {untagged.map((course) => (
-                  <CourseCard key={course.id} course={course} />
+                  <CourseCard key={course.id} course={course} lessons={lessons} />
                 ))}
               </div>
             </section>
@@ -126,8 +127,11 @@ export function CourseList({ courses, availableTags }: Props) {
   )
 }
 
-function CourseCard({ course }: { course: Course }) {
+function CourseCard({ course, lessons }: { course: Course; lessons: RawLesson[] }) {
   const lessonCount = course.lessonIds.length
+  const qaCount = lessons
+    .filter((l) => l.courseId === course.id)
+    .reduce((sum, l) => sum + l.noteIds.length, 0)
 
   return (
     <CardLink to={`/courses/${course.id}`} className="flex min-h-[120px] flex-col">
@@ -140,8 +144,9 @@ function CourseCard({ course }: { course: Course }) {
             {course.description}
           </span>
         )}
-        <span className="mt-auto text-xs text-neutral-400 dark:text-neutral-500">
-          {lessonCount} lesson{lessonCount !== 1 ? "s" : ""}
+        <span className="mt-auto flex gap-3 text-xs text-neutral-400 dark:text-neutral-500">
+          <span>{lessonCount} lesson{lessonCount !== 1 ? "s" : ""}</span>
+          <span>{qaCount} Q&amp;A</span>
         </span>
       </div>
     </CardLink>

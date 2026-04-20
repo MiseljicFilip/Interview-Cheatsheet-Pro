@@ -344,6 +344,7 @@ function NoteApp() {
             <CourseList
               courses={coursesWithTags}
               availableTags={tags}
+              lessons={lessons}
             />
           }
         />
