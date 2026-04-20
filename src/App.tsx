@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Routes, Route, Navigate, useParams } from "react-router-dom"
+import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom"
 import { Container } from "./components"
 import { EditNote } from "./EditNote"
 import { NewNote } from "./NewNote"
@@ -292,6 +292,7 @@ function NoteApp() {
 
   return (
     <Container>
+      <ScrollToTop />
       <Routes>
         <Route
           path="/"
@@ -455,6 +456,12 @@ function CourseQuizWrapper({ notes, lessons, courses, availableTags }: CourseQui
       preFilteredNotes={courseNotes}
     />
   )
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => { window.scrollTo(0, 0) }, [pathname])
+  return null
 }
 
 export default NoteApp
