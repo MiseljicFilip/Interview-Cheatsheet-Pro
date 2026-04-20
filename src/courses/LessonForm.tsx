@@ -42,8 +42,11 @@ export function LessonForm({ initialValues, notes, onSubmit, backTo, heading, su
     setSelectedNoteIds((prev) => prev.filter((nid) => nid !== id))
   }
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setIsSubmitting(true)
     onSubmit({
       title: titleRef.current?.value ?? "",
       markdown: markdownRef.current?.value ?? "",
@@ -146,8 +149,8 @@ export function LessonForm({ initialValues, notes, onSubmit, backTo, heading, su
         </div>
 
         <div className="flex gap-3">
-          <Button type="submit" variant="primary" className="flex-1">
-            {submitLabel}
+          <Button type="submit" variant="primary" className="flex-1" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : submitLabel}
           </Button>
           <Link to={backTo}>
             <Button type="button" variant="secondary">

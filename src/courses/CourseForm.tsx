@@ -1,4 +1,4 @@
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft } from "lucide-react"
 import { Button } from "../components"
@@ -23,9 +23,11 @@ export function CourseForm({ initialValues, availableTags, onSubmit, backTo, hea
   const titleRef = useRef<HTMLInputElement>(null)
   const descriptionRef = useRef<HTMLTextAreaElement>(null)
   const tagRef = useRef<HTMLSelectElement>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setIsSubmitting(true)
     onSubmit({
       title: titleRef.current?.value ?? "",
       description: descriptionRef.current?.value ?? "",
@@ -94,8 +96,8 @@ export function CourseForm({ initialValues, availableTags, onSubmit, backTo, hea
         </div>
 
         <div className="flex gap-3">
-          <Button type="submit" variant="primary" className="flex-1">
-            {submitLabel}
+          <Button type="submit" variant="primary" className="flex-1" disabled={isSubmitting}>
+            {isSubmitting ? "Saving…" : submitLabel}
           </Button>
           <Link to={backTo}>
             <Button type="button" variant="secondary">

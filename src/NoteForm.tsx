@@ -24,11 +24,14 @@ export function NoteForm({
   const [selectedTags, setSelectedTags] = useState<Tag[]>(tags)
   const navigate = useNavigate()
 
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     const titleEl = titleRef.current
     const markdownEl = markdownRef.current
     if (!titleEl || !markdownEl) return
+    setIsSubmitting(true)
     onSubmit({
       title: titleEl.value,
       markdown: markdownEl.value,
@@ -95,8 +98,8 @@ export function NoteForm({
       </div>
 
       <div className="flex flex-wrap justify-end gap-2">
-        <Button type="submit" variant="primary">
-          Save
+        <Button type="submit" variant="primary" disabled={isSubmitting}>
+          {isSubmitting ? "Saving…" : "Save"}
         </Button>
         <Link to="..">
           <Button type="button" variant="secondary">
