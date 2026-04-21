@@ -48,7 +48,11 @@ export function CourseForm({ initialValues, availableTags, onSubmit, backTo, hea
         </h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") e.currentTarget.requestSubmit() }}
+        className="space-y-5 rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm dark:border-neutral-700 dark:bg-neutral-800"
+      >
         <div className="space-y-1.5">
           <label htmlFor="course-title" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Title

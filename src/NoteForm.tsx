@@ -46,8 +46,12 @@ export function NoteForm({
     return newTag
   }
 
+  function handleKeyDown(e: React.KeyboardEvent<HTMLFormElement>) {
+    if (e.ctrlKey && e.key === "Enter") e.currentTarget.requestSubmit()
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="space-y-6">
       <div className="grid gap-6 sm:grid-cols-2">
         <div className="space-y-1.5">
           <label

@@ -67,7 +67,11 @@ export function LessonForm({ initialValues, notes, onSubmit, backTo, heading, su
         </h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        onKeyDown={(e) => { if (e.ctrlKey && e.key === "Enter") e.currentTarget.requestSubmit() }}
+        className="space-y-5"
+      >
         <div className="space-y-1.5">
           <label htmlFor="lesson-title" className="block text-sm font-medium text-neutral-700 dark:text-neutral-300">
             Title
