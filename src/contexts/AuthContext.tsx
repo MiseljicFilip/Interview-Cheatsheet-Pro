@@ -8,6 +8,9 @@ import {
 } from "react"
 import {
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
   type User as FirebaseUser,
@@ -23,6 +26,8 @@ type AuthState = {
 
 type AuthContextValue = AuthState & {
   login: (credentials: LoginCredentials) => Promise<void>
+  signup: (credentials: LoginCredentials) => Promise<void>
+  loginWithGoogle: () => Promise<void>
   logout: () => Promise<void>
   clearError: () => void
 }
@@ -61,6 +66,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const signup = useCallback(async ({ email, password }: LoginCredentials) => {
+    setError(null)
+    try {
+      await createUserWithEmailAndPassword(auth, email, password)
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code
+      const message =
+        code === "auth/email-already-in-use"
+          ? "An account with this email already exists."
+          : "Could not create account. Try again."
+      setError(message)
+      throw new Error(message)
+    }
+  }, [])
+
+  const loginWithGoogle = useCallback(async () => {
+    setError(null)
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code
+      if (code !== "auth/popup-closed-by-user") {
+        setError("Google sign-in failed. Try again.")
+      }
+    }
+  }, [])
+
   const logout = useCallback(async () => {
     await signOut(auth)
   }, [])
@@ -70,6 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isLoading,
     error,
     login,
+    signup,
+    loginWithGoogle,
     logout,
     clearError,
   }
