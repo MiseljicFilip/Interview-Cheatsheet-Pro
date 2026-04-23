@@ -15,6 +15,7 @@ import type { NoteData, RawNote, Tag, RawNoteData, RawCourse, RawLesson, Course 
 import { useLocalStorage } from "./useLocalStorage"
 import { ref, onValue, off, push, set, remove, get } from "firebase/database"
 import { db } from "./firebase"
+import { useAuth } from "./contexts/AuthContext"
 import { CourseList } from "./courses/CourseList"
 import { CourseLayout } from "./courses/CourseLayout"
 import { CourseDetail } from "./courses/CourseDetail"
@@ -31,6 +32,9 @@ type RawCourseData = Omit<RawCourse, "id">
 type RawLessonData = Omit<RawLesson, "id">
 
 function NoteApp() {
+  const { user } = useAuth()
+  const uid = user!.id
+
   const [notes, setNotes] = useState<RawNote[]>([])
   const [courses, setCourses] = useState<RawCourse[]>([])
   const [lessons, setLessons] = useState<RawLesson[]>([])
@@ -38,7 +42,7 @@ function NoteApp() {
 
   // Subscribe to notes in Realtime Database
   useEffect(() => {
-    const notesRef = ref(db, "notes")
+    const notesRef = ref(db, `users/${uid}/notes`)
     const handleValue = (snapshot: { val: () => Record<string, RawNoteData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -56,11 +60,11 @@ function NoteApp() {
     }
     onValue(notesRef, handleValue, (err) => console.error("[Realtime DB] Read error:", err))
     return () => off(notesRef)
-  }, [])
+  }, [uid])
 
   // Subscribe to courses in Realtime Database
   useEffect(() => {
-    const coursesRef = ref(db, "courses")
+    const coursesRef = ref(db, `users/${uid}/courses`)
     const handleValue = (snapshot: { val: () => Record<string, RawCourseData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -84,11 +88,11 @@ function NoteApp() {
     }
     onValue(coursesRef, handleValue, (err) => console.error("[Realtime DB] Courses read error:", err))
     return () => off(coursesRef)
-  }, [])
+  }, [uid])
 
   // Subscribe to lessons in Realtime Database
   useEffect(() => {
-    const lessonsRef = ref(db, "lessons")
+    const lessonsRef = ref(db, `users/${uid}/lessons`)
     const handleValue = (snapshot: { val: () => Record<string, RawLessonData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -113,7 +117,7 @@ function NoteApp() {
     }
     onValue(lessonsRef, handleValue, (err) => console.error("[Realtime DB] Lessons read error:", err))
     return () => off(lessonsRef)
-  }, [])
+  }, [uid])
 
   // One-time migration: if TAGS was already saved as [] before we had defaults, fill it
   useEffect(() => {
@@ -145,7 +149,7 @@ function NoteApp() {
   // --- Note CRUD ---
 
   function onCreateNote({ tags: noteTags, ...data }: NoteData) {
-    const notesRef = ref(db, "notes")
+    const notesRef = ref(db, `users/${uid}/notes`)
     const payload = {
       title: data.title ?? "",
       markdown: data.markdown ?? "",
@@ -158,7 +162,7 @@ function NoteApp() {
   }
 
   function onUpdateNote(id: string, { tags: noteTags, ...data }: NoteData) {
-    const noteRef = ref(db, "notes/" + id)
+    const noteRef = ref(db, `users/${uid}/notes/${id}`)
     set(noteRef, {
       ...data,
       tagIds: noteTags.map((t) => t.id),
@@ -167,14 +171,14 @@ function NoteApp() {
   }
 
   function onDeleteNote(id: string) {
-    const noteRef = ref(db, "notes/" + id)
+    const noteRef = ref(db, `users/${uid}/notes/${id}`)
     remove(noteRef).catch((err) => console.error("[Realtime DB] Delete error:", err))
   }
 
   // --- Course CRUD ---
 
   async function onCreateCourse(data: { title: string; description?: string; tagId: string }) {
-    const coursesRef = ref(db, "courses")
+    const coursesRef = ref(db, `users/${uid}/courses`)
     const payload: Omit<RawCourse, "id"> = {
       ...data,
       lessonIds: [],
@@ -187,7 +191,7 @@ function NoteApp() {
   }
 
   function onUpdateCourse(id: string, data: { title: string; description?: string; tagId: string }) {
-    const courseRef = ref(db, "courses/" + id)
+    const courseRef = ref(db, `users/${uid}/courses/${id}`)
     const existing = courses.find((c) => c.id === id)
     set(courseRef, {
       title: data.title,
@@ -204,16 +208,16 @@ function NoteApp() {
     // Delete all associated lessons first
     if (course?.lessonIds?.length) {
       await Promise.all(
-        course.lessonIds.map((lid) => remove(ref(db, "lessons/" + lid)))
+        course.lessonIds.map((lid) => remove(ref(db, `users/${uid}/lessons/${lid}`)))
       )
     }
-    remove(ref(db, "courses/" + id)).catch((err) => console.error("[Realtime DB] Course delete error:", err))
+    remove(ref(db, `users/${uid}/courses/${id}`)).catch((err) => console.error("[Realtime DB] Course delete error:", err))
   }
 
   // --- Lesson CRUD ---
 
   async function onCreateLesson(data: { title: string; markdown: string; courseId: string; noteIds: string[]; order: number }) {
-    const lessonsRef = ref(db, "lessons")
+    const lessonsRef = ref(db, `users/${uid}/lessons`)
     const payload: Omit<RawLesson, "id"> = {
       ...data,
       createdAt: Date.now(),
@@ -224,7 +228,7 @@ function NoteApp() {
     if (!lessonId) return null
 
     // Add lessonId to parent course's lessonIds
-    const courseRef = ref(db, "courses/" + data.courseId)
+    const courseRef = ref(db, `users/${uid}/courses/${data.courseId}`)
     const snap = await get(courseRef)
     const courseData = snap.val() as RawCourseData | null
     if (courseData) {
@@ -243,7 +247,7 @@ function NoteApp() {
   }
 
   function onUpdateLesson(id: string, data: { title: string; markdown: string; noteIds: string[] }) {
-    const lessonRef = ref(db, "lessons/" + id)
+    const lessonRef = ref(db, `users/${uid}/lessons/${id}`)
     const existing = lessons.find((l) => l.id === id)
     set(lessonRef, {
       title: data.title,
@@ -257,9 +261,9 @@ function NoteApp() {
   }
 
   async function onDeleteLesson(courseId: string, lessonId: string) {
-    await remove(ref(db, "lessons/" + lessonId))
+    await remove(ref(db, `users/${uid}/lessons/${lessonId}`))
     // Remove from parent course's lessonIds
-    const courseRef = ref(db, "courses/" + courseId)
+    const courseRef = ref(db, `users/${uid}/courses/${courseId}`)
     const snap = await get(courseRef)
     const courseData = snap.val() as RawCourseData | null
     if (courseData) {
