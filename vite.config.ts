@@ -1,42 +1,42 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import { VitePWA } from 'vite-plugin-pwa'
+import { defineConfig } from "vite"
+import react from "@vitejs/plugin-react"
+import { VitePWA } from "vite-plugin-pwa"
 
-const base = process.env.NODE_ENV === "production" ? "/Interview-Cheatsheet-Pro/" : "/"
+const base = process.env.NODE_ENV === "production" ? "/RecallStack/" : "/"
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: "autoUpdate",
       base,
       manifest: {
-        name: 'Interview Cheatsheet Pro',
-        short_name: 'Cheatsheet',
-        description: 'Personal interview prep knowledge base',
-        theme_color: '#1a1a2e',
-        background_color: '#1a1a2e',
-        display: 'standalone',
+        name: "RecallStack",
+        short_name: "Cheatsheet",
+        description: "Personal interview prep knowledge base",
+        theme_color: "#1a1a2e",
+        background_color: "#1a1a2e",
+        display: "standalone",
         start_url: base,
         scope: base,
         icons: [
           {
-            src: 'icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any',
+            src: "icon-192.png",
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
           },
           {
-            src: 'icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable',
+            src: "icon-512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
           },
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+        globPatterns: ["**/*.{js,css,html,svg,png,ico,woff,woff2}"],
       },
     }),
   ],
