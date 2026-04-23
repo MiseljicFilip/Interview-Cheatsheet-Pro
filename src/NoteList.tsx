@@ -71,7 +71,7 @@ export function NoteList({
     <>
       <header className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-semibold text-neutral-900 dark:text-white">
-          Interview Cheatsheet
+          RecallStack
         </h1>
         <div className="flex flex-wrap items-center gap-2">
           <Link to="/new">
