@@ -9,6 +9,7 @@ import { NoteLayout } from "./NoteLayout"
 import { NoteList } from "./NoteList"
 import { Quiz } from "./Quiz"
 import { RequireAuth } from "./RequireAuth"
+import { MigrateData } from "./MigrateData"
 import { Stats } from "./Stats"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData, RawCourse, RawLesson, Course } from "./types"
@@ -33,7 +34,7 @@ type RawLessonData = Omit<RawLesson, "id">
 
 function NoteApp() {
   const { user } = useAuth()
-  const uid = user!.id
+  const uid = user?.id ?? ""
 
   const [notes, setNotes] = useState<RawNote[]>([])
   const [courses, setCourses] = useState<RawCourse[]>([])
@@ -42,6 +43,7 @@ function NoteApp() {
 
   // Subscribe to notes in Realtime Database
   useEffect(() => {
+    if (!uid) return
     const notesRef = ref(db, `users/${uid}/notes`)
     const handleValue = (snapshot: { val: () => Record<string, RawNoteData> | null }) => {
       const val = snapshot.val()
@@ -64,6 +66,7 @@ function NoteApp() {
 
   // Subscribe to courses in Realtime Database
   useEffect(() => {
+    if (!uid) return
     const coursesRef = ref(db, `users/${uid}/courses`)
     const handleValue = (snapshot: { val: () => Record<string, RawCourseData> | null }) => {
       const val = snapshot.val()
@@ -92,6 +95,7 @@ function NoteApp() {
 
   // Subscribe to lessons in Realtime Database
   useEffect(() => {
+    if (!uid) return
     const lessonsRef = ref(db, `users/${uid}/lessons`)
     const handleValue = (snapshot: { val: () => Record<string, RawLessonData> | null }) => {
       const val = snapshot.val()
@@ -303,6 +307,7 @@ function NoteApp() {
         path="/*"
         element={
           <RequireAuth>
+            <MigrateData>
             <Container>
               <ScrollToTop />
               <Routes>
@@ -440,6 +445,7 @@ function NoteApp() {
         <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Container>
+            </MigrateData>
           </RequireAuth>
         }
       />
