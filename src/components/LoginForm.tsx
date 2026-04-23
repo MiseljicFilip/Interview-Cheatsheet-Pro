@@ -59,13 +59,16 @@ export function LoginForm() {
   return (
     <div className="w-full max-w-sm">
       {/* Branding */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
-          RecallStack
-        </h1>
-        <p className="mt-1.5 text-sm text-neutral-500 dark:text-neutral-400">
-          {mode === "signin" ? "Welcome back." : "Create your account."}
-        </p>
+      <div className="mb-8 flex flex-col items-center gap-3">
+        <img src="/icon.svg" alt="RecallStack" className="h-14 w-14 rounded-2xl shadow-md" />
+        <div className="text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
+            RecallStack
+          </h1>
+          <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            {mode === "signin" ? "Welcome back." : "Create your account."}
+          </p>
+        </div>
       </div>
 
       {/* Mode toggle */}
