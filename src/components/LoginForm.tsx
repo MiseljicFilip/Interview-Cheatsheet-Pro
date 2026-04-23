@@ -60,7 +60,7 @@ export function LoginForm() {
     <div className="w-full max-w-sm">
       {/* Branding */}
       <div className="mb-8 flex flex-col items-center gap-3">
-        <img src="/icon.svg" alt="RecallStack" className="h-14 w-14 rounded-2xl shadow-md" />
+        <img src={`${import.meta.env.BASE_URL}icon.svg`} alt="RecallStack" className="h-14 w-14 rounded-2xl shadow-md" />
         <div className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-white">
             RecallStack
