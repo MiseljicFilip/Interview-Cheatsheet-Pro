@@ -9,8 +9,7 @@ import {
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  signInWithRedirect,
-  getRedirectResult,
+  signInWithPopup,
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
@@ -57,12 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe
   }, [])
 
-  useEffect(() => {
-    getRedirectResult(auth).catch(() => {
-      setError("Google sign-in failed. Try again.")
-    })
-  }, [])
-
   const login = useCallback(async ({ email, password }: LoginCredentials) => {
     setError(null)
     try {
@@ -90,7 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = useCallback(async () => {
     setError(null)
-    await signInWithRedirect(auth, new GoogleAuthProvider())
+    try {
+      await signInWithPopup(auth, new GoogleAuthProvider())
+    } catch (e: unknown) {
+      const code = (e as { code?: string }).code
+      if (code !== "auth/popup-closed-by-user") {
+        setError("Google sign-in failed. Try again.")
+      }
+    }
   }, [])
 
   const logout = useCallback(async () => {
