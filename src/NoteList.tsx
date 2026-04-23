@@ -2,8 +2,9 @@ import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { Button, CardLink } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
+import { useAuth } from "./contexts/AuthContext"
 import type { SortOption, Tag } from "./types"
-import { BarChart2, BookOpen, GraduationCap, Plus, Tag as TagIcon } from "lucide-react"
+import { BarChart2, BookOpen, GraduationCap, LogOut, Plus, Tag as TagIcon } from "lucide-react"
 
 type SimplifiedNote = {
   id: string
@@ -38,6 +39,7 @@ export function NoteList({
   onUpdateTag,
   onDeleteTag,
 }: NoteListProps) {
+  const { logout } = useAuth()
   const [titleSearch, setTitleSearch] = useState("")
   const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const [sort, setSort] = useState<SortOption>("recent")
@@ -106,6 +108,14 @@ export function NoteList({
           >
             <TagIcon className="h-4 w-4" aria-hidden />
             Edit tags
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => logout()}
+            className="p-2"
+            aria-label="Sign out"
+          >
+            <LogOut className="h-4 w-4" aria-hidden />
           </Button>
         </div>
       </header>
