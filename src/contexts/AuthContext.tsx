@@ -6,84 +6,67 @@ import {
   useState,
   type ReactNode,
 } from "react"
-import * as authApi from "../api/auth"
+import {
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  type User as FirebaseUser,
+} from "firebase/auth"
+import { auth } from "../firebase"
 import type { LoginCredentials, User } from "../types"
-
-const AUTH_TOKEN_KEY = "NOTES_AUTH_TOKEN"
 
 type AuthState = {
   user: User | null
-  token: string | null
   isLoading: boolean
   error: string | null
 }
 
 type AuthContextValue = AuthState & {
   login: (credentials: LoginCredentials) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   clearError: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function toUser(firebaseUser: FirebaseUser): User {
+  return {
+    id: firebaseUser.uid,
+    email: firebaseUser.email ?? "",
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(() =>
-    localStorage.getItem(AUTH_TOKEN_KEY)
-  )
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const clearError = useCallback(() => setError(null), [])
 
-  const logout = useCallback(() => {
-    localStorage.removeItem(AUTH_TOKEN_KEY)
-    setToken(null)
-    setUser(null)
-    setError(null)
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser ? toUser(firebaseUser) : null)
+      setIsLoading(false)
+    })
+    return unsubscribe
   }, [])
 
-  // On mount: if we have a stored token, try to restore the user (getMe).
-  useEffect(() => {
-    if (!token) {
-      setIsLoading(false)
-      return
-    }
-    authApi
-      .getMe(token)
-      .then((u) => {
-        setUser(u)
-      })
-      .catch(() => {
-        localStorage.removeItem(AUTH_TOKEN_KEY)
-        setToken(null)
-        setUser(null)
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [token])
-
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async ({ email, password }: LoginCredentials) => {
     setError(null)
-    setIsLoading(true)
     try {
-      const { user: u, accessToken } = await authApi.login(credentials)
-      localStorage.setItem(AUTH_TOKEN_KEY, accessToken)
-      setToken(accessToken)
-      setUser(u)
-    } catch (e) {
-      const message = e instanceof Error ? e.message : "Login failed"
-      setError(message)
-      throw e
-    } finally {
-      setIsLoading(false)
+      await signInWithEmailAndPassword(auth, email, password)
+    } catch {
+      setError("Invalid email or password")
+      throw new Error("Invalid email or password")
     }
+  }, [])
+
+  const logout = useCallback(async () => {
+    await signOut(auth)
   }, [])
 
   const value: AuthContextValue = {
     user,
-    token,
     isLoading,
     error,
     login,
@@ -96,8 +79,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext)
-  if (!ctx) {
-    throw new Error("useAuth must be used within an AuthProvider")
-  }
+  if (!ctx) throw new Error("useAuth must be used within an AuthProvider")
   return ctx
 }
