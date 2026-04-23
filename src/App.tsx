@@ -9,7 +9,6 @@ import { NoteLayout } from "./NoteLayout"
 import { NoteList } from "./NoteList"
 import { Quiz } from "./Quiz"
 import { RequireAuth } from "./RequireAuth"
-import { MigrateData } from "./MigrateData"
 import { Stats } from "./Stats"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData, RawCourse, RawLesson, Course } from "./types"
@@ -307,7 +306,6 @@ function NoteApp() {
         path="/*"
         element={
           <RequireAuth>
-            <MigrateData>
             <Container>
               <ScrollToTop />
               <Routes>
@@ -445,7 +443,6 @@ function NoteApp() {
         <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Container>
-            </MigrateData>
           </RequireAuth>
         }
       />
