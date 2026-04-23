@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from "react"
 import { Routes, Route, Navigate, useParams, useLocation } from "react-router-dom"
 import { Container } from "./components"
 import { EditNote } from "./EditNote"
+import { Login } from "./Login"
 import { NewNote } from "./NewNote"
 import { Note } from "./Note"
 import { NoteLayout } from "./NoteLayout"
 import { NoteList } from "./NoteList"
 import { Quiz } from "./Quiz"
+import { RequireAuth } from "./RequireAuth"
 import { Stats } from "./Stats"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData, RawCourse, RawLesson, Course } from "./types"
@@ -291,9 +293,15 @@ function NoteApp() {
   }
 
   return (
-    <Container>
-      <ScrollToTop />
-      <Routes>
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route
+        path="/*"
+        element={
+          <RequireAuth>
+            <Container>
+              <ScrollToTop />
+              <Routes>
         <Route
           path="/"
           element={
@@ -426,8 +434,12 @@ function NoteApp() {
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Container>
+              </Routes>
+            </Container>
+          </RequireAuth>
+        }
+      />
+    </Routes>
   )
 }
 
