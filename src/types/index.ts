@@ -60,5 +60,12 @@ export type RawLesson = {
 export type Course = RawCourse & { tag?: Tag }
 export type Lesson = RawLesson
 
+export type Team = {
+  id: string
+  name: string
+  members: Record<string, "owner" | "member">
+  createdAt: number
+}
+
 // Auth (re-export from auth module for convenience)
 export type { User, LoginCredentials, LoginResponse, MeResponse } from "./auth"

@@ -6,6 +6,7 @@
 export type User = {
   id: string
   email: string
+  teamId?: string
 }
 
 export type LoginCredentials = {
