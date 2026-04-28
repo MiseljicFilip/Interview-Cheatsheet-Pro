@@ -10,12 +10,13 @@ import { NoteList } from "./NoteList"
 import { Quiz } from "./Quiz"
 import { RequireAuth } from "./RequireAuth"
 import { Stats } from "./Stats"
+import { TeamSettings } from "./TeamSettings"
 import { DEFAULT_TAGS } from "./data/defaultTags"
 import type { NoteData, RawNote, Tag, RawNoteData, RawCourse, RawLesson, Course } from "./types"
-import { useLocalStorage } from "./useLocalStorage"
 import { ref, onValue, off, push, set, remove, get } from "firebase/database"
 import { db } from "./firebase"
 import { useAuth } from "./contexts/AuthContext"
+import { useTeam } from "./contexts/TeamContext"
 import { CourseList } from "./courses/CourseList"
 import { CourseLayout } from "./courses/CourseLayout"
 import { CourseDetail } from "./courses/CourseDetail"
@@ -33,17 +34,41 @@ type RawLessonData = Omit<RawLesson, "id">
 
 function NoteApp() {
   const { user } = useAuth()
+  const { teamId, isLoadingTeam } = useTeam()
   const uid = user?.id ?? ""
+
+  // data lives under the team if the user belongs to one, otherwise under their own uid
+  const dataRoot = teamId ? `teams/${teamId}` : `users/${uid}`
 
   const [notes, setNotes] = useState<RawNote[]>([])
   const [courses, setCourses] = useState<RawCourse[]>([])
   const [lessons, setLessons] = useState<RawLesson[]>([])
-  const [tags, setTags] = useLocalStorage<Tag[]>("TAGS", DEFAULT_TAGS)
+  const [tags, setTagsState] = useState<Tag[]>([])
+
+  // Subscribe to tags in Realtime Database (shared within team)
+  useEffect(() => {
+    if (!uid || isLoadingTeam) return
+    const tagsRef = ref(db, `${dataRoot}/tags`)
+    const handle = (snap: { val: () => Record<string, Tag> | null }) => {
+      const val = snap.val()
+      if (val) {
+        setTagsState(Object.values(val))
+      } else {
+        // Seed defaults for new users/teams
+        const seedObj: Record<string, Tag> = {}
+        DEFAULT_TAGS.forEach((t) => { seedObj[t.id] = t })
+        set(tagsRef, seedObj)
+        setTagsState(DEFAULT_TAGS)
+      }
+    }
+    onValue(tagsRef, handle)
+    return () => off(tagsRef)
+  }, [uid, dataRoot, isLoadingTeam])
 
   // Subscribe to notes in Realtime Database
   useEffect(() => {
-    if (!uid) return
-    const notesRef = ref(db, `users/${uid}/notes`)
+    if (!uid || isLoadingTeam) return
+    const notesRef = ref(db, `${dataRoot}/notes`)
     const handleValue = (snapshot: { val: () => Record<string, RawNoteData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -61,12 +86,12 @@ function NoteApp() {
     }
     onValue(notesRef, handleValue, (err) => console.error("[Realtime DB] Read error:", err))
     return () => off(notesRef)
-  }, [uid])
+  }, [uid, dataRoot, isLoadingTeam])
 
   // Subscribe to courses in Realtime Database
   useEffect(() => {
-    if (!uid) return
-    const coursesRef = ref(db, `users/${uid}/courses`)
+    if (!uid || isLoadingTeam) return
+    const coursesRef = ref(db, `${dataRoot}/courses`)
     const handleValue = (snapshot: { val: () => Record<string, RawCourseData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -90,12 +115,12 @@ function NoteApp() {
     }
     onValue(coursesRef, handleValue, (err) => console.error("[Realtime DB] Courses read error:", err))
     return () => off(coursesRef)
-  }, [uid])
+  }, [uid, dataRoot, isLoadingTeam])
 
   // Subscribe to lessons in Realtime Database
   useEffect(() => {
-    if (!uid) return
-    const lessonsRef = ref(db, `users/${uid}/lessons`)
+    if (!uid || isLoadingTeam) return
+    const lessonsRef = ref(db, `${dataRoot}/lessons`)
     const handleValue = (snapshot: { val: () => Record<string, RawLessonData> | null }) => {
       const val = snapshot.val()
       if (!val) {
@@ -120,16 +145,7 @@ function NoteApp() {
     }
     onValue(lessonsRef, handleValue, (err) => console.error("[Realtime DB] Lessons read error:", err))
     return () => off(lessonsRef)
-  }, [uid])
-
-  // One-time migration: if TAGS was already saved as [] before we had defaults, fill it
-  useEffect(() => {
-    const migrated = localStorage.getItem("TAGS_DEFAULTS_APPLIED")
-    if (tags.length === 0 && !migrated) {
-      setTags(DEFAULT_TAGS)
-      localStorage.setItem("TAGS_DEFAULTS_APPLIED", "true")
-    }
-  }, [tags.length, setTags])
+  }, [uid, dataRoot, isLoadingTeam])
 
   const notesWithTags = useMemo(
     () =>
@@ -152,20 +168,18 @@ function NoteApp() {
   // --- Note CRUD ---
 
   function onCreateNote({ tags: noteTags, ...data }: NoteData) {
-    const notesRef = ref(db, `users/${uid}/notes`)
+    const notesRef = ref(db, `${dataRoot}/notes`)
     const payload = {
       title: data.title ?? "",
       markdown: data.markdown ?? "",
       tagIds: noteTags.map((t) => t.id),
       updatedAt: Date.now(),
     }
-    push(notesRef, payload)
-      .then(() => console.log("[Realtime DB] Note created"))
-      .catch((err) => console.error("[Realtime DB] Write error:", err))
+    push(notesRef, payload).catch((err) => console.error("[Realtime DB] Write error:", err))
   }
 
   function onUpdateNote(id: string, { tags: noteTags, ...data }: NoteData) {
-    const noteRef = ref(db, `users/${uid}/notes/${id}`)
+    const noteRef = ref(db, `${dataRoot}/notes/${id}`)
     set(noteRef, {
       ...data,
       tagIds: noteTags.map((t) => t.id),
@@ -174,27 +188,25 @@ function NoteApp() {
   }
 
   function onDeleteNote(id: string) {
-    const noteRef = ref(db, `users/${uid}/notes/${id}`)
-    remove(noteRef).catch((err) => console.error("[Realtime DB] Delete error:", err))
+    remove(ref(db, `${dataRoot}/notes/${id}`)).catch((err) => console.error("[Realtime DB] Delete error:", err))
   }
 
   // --- Course CRUD ---
 
   async function onCreateCourse(data: { title: string; description?: string; tagId: string }) {
-    const coursesRef = ref(db, `users/${uid}/courses`)
     const payload: Omit<RawCourse, "id"> = {
       ...data,
       lessonIds: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     }
-    return push(coursesRef, payload)
-      .then((ref) => ref.key)
+    return push(ref(db, `${dataRoot}/courses`), payload)
+      .then((r) => r.key)
       .catch((err) => { console.error("[Realtime DB] Course create error:", err); return null })
   }
 
   function onUpdateCourse(id: string, data: { title: string; description?: string; tagId: string }) {
-    const courseRef = ref(db, `users/${uid}/courses/${id}`)
+    const courseRef = ref(db, `${dataRoot}/courses/${id}`)
     const existing = courses.find((c) => c.id === id)
     set(courseRef, {
       title: data.title,
@@ -208,30 +220,23 @@ function NoteApp() {
 
   async function onDeleteCourse(id: string) {
     const course = courses.find((c) => c.id === id)
-    // Delete all associated lessons first
     if (course?.lessonIds?.length) {
       await Promise.all(
-        course.lessonIds.map((lid) => remove(ref(db, `users/${uid}/lessons/${lid}`)))
+        course.lessonIds.map((lid) => remove(ref(db, `${dataRoot}/lessons/${lid}`)))
       )
     }
-    remove(ref(db, `users/${uid}/courses/${id}`)).catch((err) => console.error("[Realtime DB] Course delete error:", err))
+    remove(ref(db, `${dataRoot}/courses/${id}`)).catch((err) => console.error("[Realtime DB] Course delete error:", err))
   }
 
   // --- Lesson CRUD ---
 
   async function onCreateLesson(data: { title: string; markdown: string; courseId: string; noteIds: string[]; order: number }) {
-    const lessonsRef = ref(db, `users/${uid}/lessons`)
-    const payload: Omit<RawLesson, "id"> = {
-      ...data,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }
-    const lessonRef = await push(lessonsRef, payload)
+    const payload: Omit<RawLesson, "id"> = { ...data, createdAt: Date.now(), updatedAt: Date.now() }
+    const lessonRef = await push(ref(db, `${dataRoot}/lessons`), payload)
     const lessonId = lessonRef.key
     if (!lessonId) return null
 
-    // Add lessonId to parent course's lessonIds
-    const courseRef = ref(db, `users/${uid}/courses/${data.courseId}`)
+    const courseRef = ref(db, `${dataRoot}/courses/${data.courseId}`)
     const snap = await get(courseRef)
     const courseData = snap.val() as RawCourseData | null
     if (courseData) {
@@ -240,19 +245,14 @@ function NoteApp() {
           ? courseData.lessonIds
           : Object.values(courseData.lessonIds as Record<string, string>)
         : []
-      await set(courseRef, {
-        ...courseData,
-        lessonIds: [...existing, lessonId],
-        updatedAt: Date.now(),
-      })
+      await set(courseRef, { ...courseData, lessonIds: [...existing, lessonId], updatedAt: Date.now() })
     }
     return lessonId
   }
 
   function onUpdateLesson(id: string, data: { title: string; markdown: string; noteIds: string[] }) {
-    const lessonRef = ref(db, `users/${uid}/lessons/${id}`)
     const existing = lessons.find((l) => l.id === id)
-    set(lessonRef, {
+    set(ref(db, `${dataRoot}/lessons/${id}`), {
       title: data.title,
       markdown: data.markdown,
       noteIds: data.noteIds,
@@ -264,9 +264,8 @@ function NoteApp() {
   }
 
   async function onDeleteLesson(courseId: string, lessonId: string) {
-    await remove(ref(db, `users/${uid}/lessons/${lessonId}`))
-    // Remove from parent course's lessonIds
-    const courseRef = ref(db, `users/${uid}/courses/${courseId}`)
+    await remove(ref(db, `${dataRoot}/lessons/${lessonId}`))
+    const courseRef = ref(db, `${dataRoot}/courses/${courseId}`)
     const snap = await get(courseRef)
     const courseData = snap.val() as RawCourseData | null
     if (courseData) {
@@ -275,28 +274,22 @@ function NoteApp() {
           ? courseData.lessonIds
           : Object.values(courseData.lessonIds as Record<string, string>)
         : []
-      await set(courseRef, {
-        ...courseData,
-        lessonIds: existing.filter((id) => id !== lessonId),
-        updatedAt: Date.now(),
-      })
+      await set(courseRef, { ...courseData, lessonIds: existing.filter((id) => id !== lessonId), updatedAt: Date.now() })
     }
   }
 
-  // --- Tag management ---
+  // --- Tag management (shared via Firebase) ---
 
   function addTag(tag: Tag) {
-    setTags((prev) => [...prev, tag])
+    set(ref(db, `${dataRoot}/tags/${tag.id}`), tag)
   }
 
   function updateTag(id: string, label: string) {
-    setTags((prevTags) =>
-      prevTags.map((tag) => (tag.id === id ? { ...tag, label } : tag))
-    )
+    set(ref(db, `${dataRoot}/tags/${id}`), { id, label })
   }
 
   function deleteTag(id: string) {
-    setTags((prevTags) => prevTags.filter((tag) => tag.id !== id))
+    remove(ref(db, `${dataRoot}/tags/${id}`))
   }
 
   return (
@@ -351,6 +344,7 @@ function NoteApp() {
           path="/stats"
           element={<Stats notes={notesWithTags} availableTags={tags} />}
         />
+        <Route path="/team" element={<TeamSettings />} />
 
         {/* Courses */}
         <Route
