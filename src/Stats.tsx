@@ -1,14 +1,10 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import { ArrowLeft, BookOpen, Brain, Flame, Target } from "lucide-react"
 import type { Note, QuizSession, Tag } from "./types"
-
-const SESSIONS_KEY = "QUIZ_SESSIONS"
-
-function loadSessions(): QuizSession[] {
-  const raw = localStorage.getItem(SESSIONS_KEY)
-  return raw ? JSON.parse(raw) : []
-}
+import { ref, onValue, off } from "firebase/database"
+import { db } from "./firebase"
+import { useAuth } from "./contexts/AuthContext"
 
 function formatDate(ms: number) {
   return new Date(ms).toLocaleDateString(undefined, {
@@ -47,7 +43,21 @@ type StatsProps = {
 }
 
 export function Stats({ notes, availableTags }: StatsProps) {
-  const sessions = useMemo(() => loadSessions(), [])
+  const { user } = useAuth()
+  const [sessions, setSessions] = useState<QuizSession[]>([])
+
+  useEffect(() => {
+    if (!user?.id) return
+    const sessionsRef = ref(db, `users/${user.id}/quizSessions`)
+    const handle = (snap: { val: () => Record<string, QuizSession> | null }) => {
+      const val = snap.val()
+      if (!val) { setSessions([]); return }
+      const list = Object.values(val).sort((a, b) => b.date - a.date)
+      setSessions(list)
+    }
+    onValue(sessionsRef, handle)
+    return () => off(sessionsRef)
+  }, [user?.id])
 
   const totalQuestions = notes.length
   const totalQuizzes = sessions.length

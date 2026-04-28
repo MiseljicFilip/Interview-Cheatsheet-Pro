@@ -5,16 +5,9 @@ import { Button, MarkdownRenderer } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
 import { ArrowLeft, ChevronRight, RotateCcw } from "lucide-react"
 import type { QuizSession, Tag } from "./types"
-
-const SESSIONS_KEY = "QUIZ_SESSIONS"
-const MAX_SESSIONS = 100
-
-function saveSession(session: QuizSession) {
-  const raw = localStorage.getItem(SESSIONS_KEY)
-  const existing: QuizSession[] = raw ? JSON.parse(raw) : []
-  const updated = [session, ...existing].slice(0, MAX_SESSIONS)
-  localStorage.setItem(SESSIONS_KEY, JSON.stringify(updated))
-}
+import { ref, push } from "firebase/database"
+import { db } from "./firebase"
+import { useAuth } from "./contexts/AuthContext"
 
 type QuizNote = {
   id: string
@@ -43,6 +36,7 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function Quiz({ notes, availableTags, courseId, courseTitle, preFilteredNotes }: QuizProps) {
+  const { user } = useAuth()
   const [phase, setPhase] = useState<Phase>("setup")
   const [selectedTags, setSelectedTags] = useState<Tag[]>([])
   const [maxQuestions, setMaxQuestions] = useState(10)
@@ -84,7 +78,7 @@ export function Quiz({ notes, availableTags, courseId, courseTitle, preFilteredN
 
     const next = currentIndex + 1
     if (next >= queue.length) {
-      saveSession({
+      const session: QuizSession = {
         id: uuidv4(),
         date: Date.now(),
         total: queue.length,
@@ -92,7 +86,10 @@ export function Quiz({ notes, availableTags, courseId, courseTitle, preFilteredN
         tagIds: selectedTags.map((t) => t.id),
         missedNoteIds: newMissed.map((n) => n.id),
         ...(courseId ? { courseId } : {}),
-      })
+      }
+      if (user?.id) {
+        push(ref(db, `users/${user.id}/quizSessions`), session)
+      }
       setPhase("results")
     } else {
       setCurrentIndex(next)
