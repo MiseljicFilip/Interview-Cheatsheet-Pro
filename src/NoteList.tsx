@@ -4,7 +4,7 @@ import { Button, CardLink } from "./components"
 import { TagsSelect } from "./components/TagsSelect"
 import { useAuth } from "./contexts/AuthContext"
 import type { SortOption, Tag } from "./types"
-import { BarChart2, BookOpen, GraduationCap, LogOut, Plus, Tag as TagIcon } from "lucide-react"
+import { BarChart2, BookOpen, GraduationCap, LogOut, Plus, Tag as TagIcon, Users } from "lucide-react"
 
 type SimplifiedNote = {
   id: string
@@ -98,6 +98,12 @@ export function NoteList({
             <Button variant="secondary" className="inline-flex gap-2">
               <BarChart2 className="h-4 w-4" aria-hidden />
               Stats
+            </Button>
+          </Link>
+          <Link to="/team">
+            <Button variant="secondary" className="inline-flex gap-2">
+              <Users className="h-4 w-4" aria-hidden />
+              Team
             </Button>
           </Link>
           <Button
