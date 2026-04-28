@@ -5,12 +5,22 @@ import { Button } from "./components"
 import { useTeam } from "./contexts/TeamContext"
 
 export function TeamSettings() {
-  const { team, teamId, isLoadingTeam, createTeam, inviteMember, leaveTeam } = useTeam()
+  const { team, teamId, isLoadingTeam, createTeam, inviteMember, leaveTeam, migrateMyData } = useTeam()
   const [teamName, setTeamName] = useState("")
   const [inviteEmail, setInviteEmail] = useState("")
   const [inviteSent, setInviteSent] = useState(false)
   const [creating, setCreating] = useState(false)
   const [inviting, setInviting] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrated, setMigrated] = useState(false)
+
+  async function handleMigrate() {
+    setMigrating(true)
+    await migrateMyData()
+    setMigrating(false)
+    setMigrated(true)
+    setTimeout(() => setMigrated(false), 4000)
+  }
 
   const inputClass =
     "w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm outline-none placeholder:text-neutral-400 transition-colors focus:border-neutral-400 focus:bg-white focus:ring-2 focus:ring-neutral-500/20 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-800/60 dark:placeholder:text-neutral-500 dark:focus:bg-neutral-800"
@@ -153,6 +163,22 @@ export function TeamSettings() {
                 {inviting ? "…" : "Invite"}
               </Button>
             </form>
+          </div>
+
+          {/* Recover personal data */}
+          <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-700 dark:bg-neutral-800">
+            <h3 className="mb-1 text-sm font-semibold text-neutral-700 dark:text-neutral-300">
+              Recover my data
+            </h3>
+            <p className="mb-3 text-xs text-neutral-500 dark:text-neutral-400">
+              Copy your personal notes, courses and tags into this team.
+            </p>
+            {migrated && (
+              <p className="mb-3 text-sm text-green-600 dark:text-green-400">Data copied successfully.</p>
+            )}
+            <Button variant="secondary" onClick={handleMigrate} disabled={migrating} className="inline-flex gap-2">
+              {migrating ? "Copying…" : "Copy my data to team"}
+            </Button>
           </div>
 
           {/* Leave */}

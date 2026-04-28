@@ -16,6 +16,20 @@ function encodeEmail(email: string) {
   return email.replace(/\./g, ",")
 }
 
+async function migrateUserDataToTeam(uid: string, targetTeamId: string) {
+  const paths = ["notes", "courses", "lessons", "tags"]
+  await Promise.all(
+    paths.map(async (path) => {
+      const snap = await get(ref(db, `users/${uid}/${path}`))
+      const val = snap.val()
+      if (!val) return
+      const teamSnap = await get(ref(db, `teams/${targetTeamId}/${path}`))
+      const existing = teamSnap.val() ?? {}
+      await set(ref(db, `teams/${targetTeamId}/${path}`), { ...val, ...existing })
+    })
+  )
+}
+
 type TeamContextValue = {
   teamId: string | null
   team: Team | null
@@ -23,6 +37,7 @@ type TeamContextValue = {
   createTeam: (name: string) => Promise<void>
   inviteMember: (email: string) => Promise<void>
   leaveTeam: () => Promise<void>
+  migrateMyData: () => Promise<void>
 }
 
 const TeamContext = createContext<TeamContextValue | null>(null)
@@ -67,7 +82,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
       const invitedTeamId = snap.val()
       if (!invitedTeamId) return
 
-      // Join the team
+      await migrateUserDataToTeam(uid, invitedTeamId)
       await set(ref(db, `teams/${invitedTeamId}/members/${uid}`), "member")
       await set(ref(db, `users/${uid}/teamId`), invitedTeamId)
       await remove(inviteRef)
@@ -79,16 +94,21 @@ export function TeamProvider({ children }: { children: ReactNode }) {
 
   const createTeam = useCallback(async (name: string) => {
     if (!uid) return
-    const teamsRef = ref(db, "teams")
-    const newTeamRef = await push(teamsRef, {
+    const newTeamRef = await push(ref(db, "teams"), {
       name,
       members: { [uid]: "owner" },
       createdAt: Date.now(),
     })
     const newTeamId = newTeamRef.key!
+    await migrateUserDataToTeam(uid, newTeamId)
     await set(ref(db, `users/${uid}/teamId`), newTeamId)
     setTeamId(newTeamId)
   }, [uid])
+
+  const migrateMyData = useCallback(async () => {
+    if (!uid || !teamId) return
+    await migrateUserDataToTeam(uid, teamId)
+  }, [uid, teamId])
 
   const inviteMember = useCallback(async (inviteeEmail: string) => {
     if (!teamId) return
@@ -104,7 +124,7 @@ export function TeamProvider({ children }: { children: ReactNode }) {
   }, [uid, teamId])
 
   return (
-    <TeamContext.Provider value={{ teamId, team, isLoadingTeam, createTeam, inviteMember, leaveTeam }}>
+    <TeamContext.Provider value={{ teamId, team, isLoadingTeam, createTeam, inviteMember, leaveTeam, migrateMyData }}>
       {children}
     </TeamContext.Provider>
   )
